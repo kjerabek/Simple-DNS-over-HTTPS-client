@@ -6,7 +6,6 @@ import argparse
 
 class DOHRequests:
     headers = {"Accept": "application/dns-message",
-                "User-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.80 Safari/537.36",
                 "Content-Type": "application/dns-message"}
 
 
@@ -30,14 +29,15 @@ class DOHRequests:
             self.url = "https://cloudflare-dns.com/dns-query"
 
     def createDnsWireQuery(self, domain):
-        dnsWireQuery = dnslib.DNSRecord.question(domain, dnsreqtype)
+        dnsWireQuery = dnslib.DNSRecord.question(domain, self.dnsreqtype)
         dnsWireQuery.header.id = 0
 
         return dnsWireQuery
 
     def getJson(self, domain):
-        headers["Accept"] = "application/dns-json"
-        url += "?name={}&type={}".format(domain, dnsreqtype)
+        self.headers["Accept"] = "application/dns-json"
+        self.headers["Content-Type"] = "application/dns-json"
+        url = self.url + "?name={}&type={}".format(domain, self.dnsreqtype)
 
         result = requests.get(url,
                               headers=self.headers)
@@ -47,7 +47,7 @@ class DOHRequests:
 
     def getWire(self, domain):
         dnsWireQuery = self.createDnsWireQuery(domain)
-        url += "?dns=" +
+        url = self.url + "?dns=" +\
                 str(base64.urlsafe_b64encode(dnsWireQuery.pack()))[2:-1].replace("=", "")
 
         result = requests.get(url,
@@ -61,7 +61,7 @@ class DOHRequests:
         dnsWireQuery = self.createDnsWireQuery(domain)
         data = dnsWireQuery.pack()
 
-        result = requests.post(url,
+        result = requests.post(self.url,
                                data=data,
                                headers=self.headers)
 
@@ -128,7 +128,7 @@ if __name__ == "__main__":
                         action="store",
                         dest="wireorjson",
                         choices=["wire", "json"],
-                        default="json")
+                        default="wire")
 
     parser.add_argument('-u', '--url',
                         action="store",
@@ -148,3 +148,5 @@ if __name__ == "__main__":
                       args.url,
                       args.inputfilename,
                       args.outputfilename)
+    if args.domain:
+        doh.makeRequest(args.domain)
